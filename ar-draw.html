@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ChronoView — Mode Artiste</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:  #080604;
+      --gold:   #c8a84b;
+      --gold-lt:#e8c96e;
+      --cream:  #f0e6c8;
+      --muted:  #a89870;
+    }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+
+    /* ── CAMERA ── */
+    #video {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    /* ── CANVAS DE DESSIN ── */
+    #canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    /* ── BOUTONS HAUT ── */
+    .top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 16px 0;
+    }
+
+    .btn-nav {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: rgba(8,6,4,.75);
+      border: 1px solid rgba(200,168,75,.35);
+      padding: 9px 16px;
+      border-radius: 2px;
+      text-decoration: none;
+      backdrop-filter: blur(8px);
+    }
+
+    .mode-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 11px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(8,6,4,.75);
+      border: 1px solid rgba(200,168,75,.35);
+      padding: 9px 16px;
+      border-radius: 2px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── BARRE OUTILS ── */
+    .toolbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 10;
+      background: rgba(8,6,4,.88);
+      border-top: 1px solid rgba(200,168,75,.2);
+      backdrop-filter: blur(16px);
+      padding: 14px 16px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Palette de couleurs */
+    .colors {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .color-dot {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform .15s, border-color .15s;
+      flex-shrink: 0;
+    }
+    .color-dot.active {
+      border-color: var(--cream);
+      transform: scale(1.25);
+    }
+
+    /* Taille du pinceau */
+    .brush-sizes {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brush-btn {
+      background: transparent;
+      border: 1px solid rgba(200,168,75,.3);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: border-color .15s, transform .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .brush-btn.active { border-color: var(--gold); transform: scale(1.15); }
+    .brush-btn .dot { background: var(--cream); border-radius: 50%; }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .action-btn {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: rgba(200,168,75,.1);
+      border: 1px solid rgba(200,168,75,.3);
+      padding: 9px 18px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      flex: 1;
+      text-align: center;
+    }
+    .action-btn:hover { background: rgba(200,168,75,.2); border-color: rgba(200,168,75,.6); }
+    .action-btn.gold {
+      background: rgba(200,168,75,.2);
+      border-color: rgba(200,168,75,.6);
+      color: var(--gold-lt);
+    }
+
+    /* ── MESSAGE DÉMARRAGE ── */
+    #start-msg {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(8,6,4,.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px;
+      gap: 20px;
+    }
+    #start-msg h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: var(--cream);
+      letter-spacing: .05em;
+    }
+    #start-msg p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 280px;
+    }
+    #start-btn {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--black);
+      background: var(--gold);
+      border: none;
+      padding: 14px 32px;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      top: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 30;
+      background: rgba(8,6,4,.9);
+      border: 1px solid rgba(200,168,75,.4);
+      color: var(--gold);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      letter-spacing: .1em;
+      padding: 10px 20px;
+      border-radius: 2px;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity .3s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Gomme active */
+    #canvas.eraser { cursor: cell; }
+  </style>
+</head>
+<body>
+
+<!-- Message de démarrage -->
+<div id="start-msg">
+  <h2>Mode Artiste</h2>
+  <p>Pointez votre caméra vers un mur et dessinez votre oeuvre en réalité augmentée</p>
+  <button id="start-btn" onclick="startCamera()">Activer la caméra</button>
+</div>
+
+<!-- Caméra -->
+<video id="video" autoplay playsinline muted></video>
+
+<!-- Canvas de dessin -->
+<canvas id="canvas"></canvas>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <a href="index.html" class="btn-nav">← Retour</a>
+  <div class="mode-label">Mode Artiste</div>
+</div>
+
+<!-- Barre d'outils -->
+<div class="toolbar">
+
+  <!-- Palette -->
+  <div class="colors" id="palette">
+    <div class="color-dot active" style="background:#ffffff" data-color="#ffffff"></div>
+    <div class="color-dot" style="background:#c8a84b" data-color="#c8a84b"></div>
+    <div class="color-dot" style="background:#e74c3c" data-color="#e74c3c"></div>
+    <div class="color-dot" style="background:#3498db" data-color="#3498db"></div>
+    <div class="color-dot" style="background:#2ecc71" data-color="#2ecc71"></div>
+    <div class="color-dot" style="background:#9b59b6" data-color="#9b59b6"></div>
+    <div class="color-dot" style="background:#f39c12" data-color="#f39c12"></div>
+    <div class="color-dot" style="background:#1a1208" data-color="#1a1208; border: 1px solid rgba(200,168,75,.4)" data-color="#000000"></div>
+  </div>
+
+  <!-- Taille pinceau -->
+  <div class="brush-sizes" id="brushSizes">
+    <button class="brush-btn active" style="width:34px;height:34px" data-size="3">
+      <div class="dot" style="width:3px;height:3px"></div>
+    </button>
+    <button class="brush-btn" style="width:38px;height:38px" data-size="6">
+      <div class="dot" style="width:6px;height:6px"></div>
+    </button>
+    <button class="brush-btn" style="width:42px;height:42px" data-size="12">
+      <div class="dot" style="width:12px;height:12px"></div>
+    </button>
+    <button class="brush-btn" style="width:46px;height:46px" data-size="22">
+      <div class="dot" style="width:22px;height:22px"></div>
+    </button>
+    <button class="brush-btn" style="width:50px;height:50px" data-size="36">
+      <div class="dot" style="width:36px;height:36px"></div>
+    </button>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="action-btn" id="eraserBtn" onclick="toggleEraser()">Gomme</button>
+    <button class="action-btn" onclick="clearCanvas()">Effacer</button>
+    <button class="action-btn gold" onclick="saveDrawing()">Enregistrer</button>
+  </div>
+
+</div>
+
+<script>
+  const video   = document.getElementById('video');
+  const canvas  = document.getElementById('canvas');
+  const ctx     = canvas.getContext('2d');
+
+  let drawing   = false;
+  let erasing   = false;
+  let color     = '#ffffff';
+  let brushSize = 3;
+  let lastX = 0, lastY = 0;
+
+  // ── Démarrer la caméra ──
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      document.getElementById('start-msg').style.display = 'none';
+      resizeCanvas();
+    } catch(e) {
+      alert('Caméra non accessible. Vérifiez les permissions Safari.');
+    }
+  }
+
+  // ── Redimensionner le canvas ──
+  function resizeCanvas() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.putImageData(imageData, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // ── Coordonnées touch/mouse ──
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const src  = e.touches ? e.touches[0] : e;
+    return {
+      x: (src.clientX - rect.left) * (canvas.width  / rect.width),
+      y: (src.clientY - rect.top)  * (canvas.height / rect.height)
+    };
+  }
+
+  // ── Début du tracé ──
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    // Point unique (tap)
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, (erasing ? brushSize * 3 : brushSize) / 2, 0, Math.PI * 2);
+    ctx.fillStyle = erasing ? 'rgba(0,0,0,0)' : color;
+    if (erasing) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fill();
+    }
+  }
+
+  // ── Tracé en cours ──
+  function draw(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const pos = getPos(e);
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+
+    if (erasing) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth   = brushSize * 3;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth   = brushSize;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.strokeStyle = color;
+      ctx.shadowBlur  = brushSize > 10 ? 8 : 0;
+      ctx.shadowColor = color;
+      ctx.stroke();
+      ctx.shadowBlur  = 0;
+    }
+
+    lastX = pos.x;
+    lastY = pos.y;
+  }
+
+  function stopDraw(e) {
+    e.preventDefault();
+    drawing = false;
+  }
+
+  // Événements touch
+  canvas.addEventListener('touchstart',  startDraw, { passive: false });
+  canvas.addEventListener('touchmove',   draw,      { passive: false });
+  canvas.addEventListener('touchend',    stopDraw,  { passive: false });
+
+  // Événements souris (desktop)
+  canvas.addEventListener('mousedown',  startDraw);
+  canvas.addEventListener('mousemove',  draw);
+  canvas.addEventListener('mouseup',    stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+
+  // ── Palette de couleurs ──
+  document.getElementById('palette').addEventListener('click', e => {
+    const dot = e.target.closest('.color-dot');
+    if (!dot) return;
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    color   = dot.dataset.color;
+    erasing = false;
+    canvas.classList.remove('eraser');
+    document.getElementById('eraserBtn').style.borderColor = 'rgba(200,168,75,.3)';
+    document.getElementById('eraserBtn').style.color = 'var(--cream)';
+  });
+
+  // ── Taille pinceau ──
+  document.getElementById('brushSizes').addEventListener('click', e => {
+    const btn = e.target.closest('.brush-btn');
+    if (!btn) return;
+    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    brushSize = parseInt(btn.dataset.size);
+  });
+
+  // ── Gomme ──
+  function toggleEraser() {
+    erasing = !erasing;
+    canvas.classList.toggle('eraser', erasing);
+    const btn = document.getElementById('eraserBtn');
+    if (erasing) {
+      btn.style.borderColor = 'var(--gold)';
+      btn.style.color = 'var(--gold-lt)';
+    } else {
+      btn.style.borderColor = 'rgba(200,168,75,.3)';
+      btn.style.color = 'var(--cream)';
+    }
+  }
+
+  // ── Effacer tout ──
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    showToast('Canvas effacé');
+  }
+
+  // ── Sauvegarder ──
+  function saveDrawing() {
+    // Composite : photo caméra + dessin
+    const save = document.createElement('canvas');
+    save.width  = canvas.width;
+    save.height = canvas.height;
+    const sCtx = save.getContext('2d');
+
+    // Fond = frame vidéo
+    sCtx.drawImage(video, 0, 0, save.width, save.height);
+    // Dessus = le dessin
+    sCtx.drawImage(canvas, 0, 0);
+
+    const link = document.createElement('a');
+    link.download = 'chronoview-art-' + Date.now() + '.png';
+    link.href = save.toDataURL('image/png');
+    link.click();
+    showToast('Image enregistrée');
+  }
+
+  // ── Toast ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // Init canvas
+  resizeCanvas();
+</script>
+</body>
+</html>
