@@ -71,52 +71,104 @@
     }
     #gps-pill.fade { opacity: 0; }
 
-    /* ──── BOTTOM CARD ──── */
-    #infocard {
-      position: fixed; bottom: 0; left: 0; right: 0;
+    /* ──── PHOTO OVERLAY (premium) ──── */
+    #photo-overlay {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.92);
       z-index: 100;
-      background: linear-gradient(to top, rgba(0,0,0,.95) 55%, transparent);
-      padding: 70px 22px 38px;
+      width: min(88vw, 420px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .5s ease, transform .5s ease;
     }
-    .loc-tag { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: #c8a84b; margin-bottom: 4px; }
-    .loc-name { font-size: 22px; color: #f0e6c8; margin-bottom: 8px; }
-    .dist-row {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 13px; color: #a89870; margin-bottom: 16px;
-    }
-    .pulse {
-      width: 8px; height: 8px; border-radius: 50%; background: #c8a84b;
-      animation: pulseAnim 1.8s ease infinite;
-    }
-    @keyframes pulseAnim {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:.4; transform:scale(.75); }
-    }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chip {
-      background: rgba(200,168,75,.09);
-      border: 1px solid rgba(200,168,75,.22);
-      color: #f0e6c8;
-      padding: 4px 12px; font-size: 12px; border-radius: 2px;
+    #photo-overlay.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: all;
     }
 
-    /* Photo nav buttons */
+    /* Cadre doré */
+    .photo-frame {
+      position: relative;
+      border: 1px solid rgba(200,168,75,.55);
+      box-shadow: 0 0 40px rgba(0,0,0,.7), inset 0 0 0 4px rgba(200,168,75,.08);
+      background: #050400;
+    }
+    .photo-frame::before, .photo-frame::after,
+    .corner-br::before, .corner-br::after {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      border-color: #c8a84b; border-style: solid;
+    }
+    .photo-frame::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .photo-frame::after  { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .corner-br { position: absolute; inset: 0; pointer-events: none; }
+    .corner-br::before { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .corner-br::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    /* Année en haut */
+    .photo-year {
+      text-align: center;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 28px; letter-spacing: .1em;
+      color: #c8a84b;
+      padding: 12px 0 8px;
+      border-bottom: 1px solid rgba(200,168,75,.2);
+      background: rgba(8,6,4,.85);
+    }
+
+    /* Image */
+    #ar-img-overlay {
+      display: block;
+      width: 100%; aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+
+    /* Légende */
+    .photo-caption {
+      text-align: center;
+      font-size: 13px; letter-spacing: .12em;
+      color: #a89870;
+      padding: 10px 16px 12px;
+      background: rgba(8,6,4,.85);
+      border-top: 1px solid rgba(200,168,75,.2);
+    }
+
+    /* Boutons navigation */
     .photo-nav {
-      display: flex; gap: 10px; margin-top: 16px;
+      display: flex; gap: 1px; margin-top: 1px;
     }
     .nav-btn {
-      flex: 1; padding: 11px;
-      background: rgba(200,168,75,.1);
-      border: 1px solid rgba(200,168,75,.3);
-      color: #e8c96e; font-size: 13px;
-      cursor: pointer; border-radius: 2px;
+      flex: 1; padding: 13px 8px;
+      background: rgba(8,6,4,.9);
+      border: none; border-top: 1px solid rgba(200,168,75,.18);
+      color: #e8c96e; font-size: 12px; letter-spacing: .08em;
+      cursor: pointer;
       transition: background .2s;
     }
-    .nav-btn:active { background: rgba(200,168,75,.22); }
+    .nav-btn:first-child { border-right: 1px solid rgba(200,168,75,.18); }
+    .nav-btn:last-child  { border-left: 1px solid rgba(200,168,75,.18); }
+    .nav-btn:active { background: rgba(200,168,75,.15); }
     .nav-btn.primary {
-      background: rgba(200,168,75,.18);
-      border-color: rgba(200,168,75,.55);
+      background: rgba(200,168,75,.1);
+      color: #c8a84b;
     }
+
+    /* ──── BOTTOM INFO ──── */
+    #infocard {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 200;
+      background: linear-gradient(to top, rgba(0,0,0,.92) 60%, transparent);
+      padding: 40px 22px 30px;
+    }
+    .loc-tag { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: #c8a84b; margin-bottom: 3px; }
+    .loc-name { font-size: 18px; color: #f0e6c8; margin-bottom: 6px; }
+    .dist-row { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #a89870; }
+    .pulse { width: 7px; height: 7px; border-radius: 50%; background: #c8a84b; animation: pulseAnim 1.8s ease infinite; }
+    @keyframes pulseAnim { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.4;transform:scale(.75);} }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { background: rgba(200,168,75,.09); border: 1px solid rgba(200,168,75,.22); color: #f0e6c8; padding: 3px 10px; font-size: 11px; border-radius: 2px; }
 
     /* A-Frame full screen */
     a-scene { display: block !important; width: 100vw !important; height: 100vh !important; }
@@ -140,6 +192,21 @@
   <div class="mbadge">Mode GPS</div>
 </div>
 
+<!-- Photo overlay premium (centré sur l'écran) -->
+<div id="photo-overlay">
+  <div class="photo-frame">
+    <div class="corner-br"></div>
+    <div class="photo-year" id="overlay-year">1905</div>
+    <img id="ar-img-overlay" src="https://picsum.photos/seed/pont1905/800/600" alt="">
+    <div class="photo-caption" id="overlay-caption">Vue d'époque du pont</div>
+    <div class="photo-nav">
+      <button class="nav-btn" onclick="prevPhoto()">← Préc.</button>
+      <button class="nav-btn primary" id="vid-btn" onclick="toggleVideo()">Vidéo</button>
+      <button class="nav-btn" onclick="nextPhoto()">Suiv. →</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bottom info card -->
 <div id="infocard">
   <div class="loc-tag">Lieu Historique</div>
@@ -149,11 +216,6 @@
     <span id="dist-text">Calcul de la distance…</span>
   </div>
   <div class="chips" id="chips"></div>
-  <div class="photo-nav">
-    <button class="nav-btn" onclick="prevPhoto()">← Photo précédente</button>
-    <button class="nav-btn primary" onclick="toggleVideo()">Vidéo</button>
-    <button class="nav-btn" onclick="nextPhoto()">Photo suivante →</button>
-  </div>
 </div>
 
 <!-- ════════════════════════════════════════
@@ -195,53 +257,13 @@
                  dur: 2200; easing: easeInOutSine; loop: true; dir: alternate;">
     </a-sphere>
 
-    <!-- Photo principale (flottante, face à la caméra) -->
-    <a-plane
-      id="ar-photo"
-      src="#p0"
-      width="12" height="9"
-      position="0 4 0"
-      material="shader: flat; transparent: false;"
-      look-at="[gps-camera]">
-    </a-plane>
-
-    <!-- Année (au-dessus de la photo) -->
-    <a-text id="ar-year"
-      value="1905"
-      position="0 9.5 0"
+    <!-- Marqueur visuel 3D (point de repère dans l'espace) -->
+    <a-text
+      value="▼"
+      position="0 3 0"
       align="center"
       color="#c8a84b"
-      width="20"
-      look-at="[gps-camera]">
-    </a-text>
-
-    <!-- Légende (sous la photo) -->
-    <a-text id="ar-caption"
-      value="Vue historique"
-      position="0 -1 0"
-      align="center"
-      color="#f0e6c8"
-      width="16"
-      look-at="[gps-camera]">
-    </a-text>
-
-    <!-- Vidéo (offset sur le côté) -->
-    <a-plane
-      id="ar-video"
-      material="shader: flat; src: #vid; transparent: false;"
-      width="12" height="9"
-      position="14 4 0"
-      visible="false"
-      look-at="[gps-camera]">
-    </a-plane>
-
-    <a-text id="ar-vid-label"
-      value="Archives vidéo — 1968"
-      position="14 -1 0"
-      align="center"
-      color="#c8a84b"
-      width="16"
-      visible="false"
+      width="6"
       look-at="[gps-camera]">
     </a-text>
 
@@ -284,6 +306,18 @@ CONFIG.stats.forEach(s => {
   chipsEl.appendChild(c);
 });
 
+function updateOverlay() {
+  const p = CONFIG.photos[photoIdx];
+  document.getElementById('ar-img-overlay').src = p.id.replace('#','') === p.id ? p.id : document.querySelector(p.id).src;
+  document.getElementById('overlay-year').textContent = p.year;
+  document.getElementById('overlay-caption').textContent = p.caption;
+}
+// init overlay avec vraie src
+function initOverlay() {
+  const p = CONFIG.photos[0];
+  document.getElementById('ar-img-overlay').src = document.querySelector(p.id).src;
+}
+
 // Haversine distance (meters)
 function dist(lat1, lng1, lat2, lng2) {
   const R = 6371000, r = Math.PI/180;
@@ -310,9 +344,10 @@ if (navigator.geolocation) {
     // Couleur zone
     document.getElementById('dist-text').style.color = inZone ? '#c8a84b' : '';
 
-    // Afficher/cacher le contenu AR
-    const entity = document.querySelector('#landmark-entity');
-    if (entity) entity.setAttribute('visible', inZone ? 'true' : 'false');
+    // Afficher/cacher l'overlay photo
+    const overlay = document.getElementById('photo-overlay');
+    if (inZone) overlay.classList.add('visible');
+    else overlay.classList.remove('visible');
 
     const pill = document.getElementById('gps-pill');
     pill.textContent = `GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
@@ -329,9 +364,9 @@ if (navigator.geolocation) {
 
 function updateAR() {
   const p = CONFIG.photos[photoIdx];
-  document.querySelector('#ar-photo').setAttribute('src', p.id);
-  document.querySelector('#ar-year').setAttribute('value', p.year);
-  document.querySelector('#ar-caption').setAttribute('value', p.caption);
+  document.getElementById('ar-img-overlay').src = document.querySelector(p.id).src;
+  document.getElementById('overlay-year').textContent = p.year;
+  document.getElementById('overlay-caption').textContent = p.caption;
 }
 
 function nextPhoto() {
@@ -348,10 +383,33 @@ function prevPhoto() {
 
 function toggleVideo() {
   videoVisible = !videoVisible;
-  document.querySelector('#ar-video').setAttribute('visible', videoVisible ? 'true' : 'false');
-  document.querySelector('#ar-vid-label').setAttribute('visible', videoVisible ? 'true' : 'false');
-  document.querySelector('#ar-photo').setAttribute('visible', videoVisible ? 'false' : 'true');
-  if (videoVisible) document.querySelector('#vid').play();
+  const imgEl = document.getElementById('ar-img-overlay');
+  const vidEl = document.querySelector('#vid');
+  const btn   = document.getElementById('vid-btn');
+  if (videoVisible) {
+    imgEl.style.display = 'none';
+    // Remplace l'img par une video dans le frame
+    let vTag = document.getElementById('overlay-vid');
+    if (!vTag) {
+      vTag = document.createElement('video');
+      vTag.id = 'overlay-vid';
+      vTag.autoplay = true; vTag.loop = true; vTag.muted = true; vTag.playsInline = true;
+      vTag.src = vidEl.src;
+      vTag.style.cssText = 'display:block;width:100%;aspect-ratio:4/3;object-fit:cover;';
+      imgEl.parentNode.insertBefore(vTag, imgEl.nextSibling);
+    }
+    vTag.style.display = 'block';
+    vTag.play();
+    document.getElementById('overlay-year').textContent = 'Archives';
+    document.getElementById('overlay-caption').textContent = 'Vidéo d\'archive — 1968';
+    btn.textContent = 'Photos';
+  } else {
+    const vTag = document.getElementById('overlay-vid');
+    if (vTag) vTag.style.display = 'none';
+    imgEl.style.display = 'block';
+    btn.textContent = 'Vidéo';
+    updateAR();
+  }
 }
 
 // Auto-cycle photos every 7s
@@ -359,7 +417,10 @@ setInterval(() => { if (!videoVisible) nextPhoto(); }, 7000);
 
 // Remove loading on scene ready
 document.querySelector('a-scene').addEventListener('loaded', () => {
-  setTimeout(() => document.getElementById('loading').classList.add('out'), 1400);
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('out');
+    initOverlay();
+  }, 1400);
 });
 </script>
 </body>
