@@ -199,8 +199,8 @@
     <a-plane
       id="ar-photo"
       src="#p0"
-      width="4" height="3"
-      position="0 5 0"
+      width="12" height="9"
+      position="0 4 0"
       material="shader: flat; transparent: false;"
       look-at="[gps-camera]">
     </a-plane>
@@ -208,20 +208,20 @@
     <!-- Année (au-dessus de la photo) -->
     <a-text id="ar-year"
       value="1905"
-      position="0 7 0"
+      position="0 9.5 0"
       align="center"
       color="#c8a84b"
-      width="8"
+      width="20"
       look-at="[gps-camera]">
     </a-text>
 
     <!-- Légende (sous la photo) -->
     <a-text id="ar-caption"
       value="Vue historique"
-      position="0 3.2 0"
+      position="0 -1 0"
       align="center"
       color="#f0e6c8"
-      width="6"
+      width="16"
       look-at="[gps-camera]">
     </a-text>
 
@@ -229,18 +229,18 @@
     <a-plane
       id="ar-video"
       material="shader: flat; src: #vid; transparent: false;"
-      width="4" height="3"
-      position="5.5 5 0"
+      width="12" height="9"
+      position="14 4 0"
       visible="false"
       look-at="[gps-camera]">
     </a-plane>
 
     <a-text id="ar-vid-label"
       value="Archives vidéo — 1968"
-      position="5.5 3.2 0"
+      position="14 -1 0"
       align="center"
       color="#c8a84b"
-      width="6"
+      width="16"
       visible="false"
       look-at="[gps-camera]">
     </a-text>
@@ -248,7 +248,7 @@
   </a-entity>
 
   <!-- Caméra GPS -->
-  <a-camera gps-camera rotation-reader></a-camera>
+  <a-camera gps-camera="simulateAltitude: 0; positionMinAccuracy: 100; minDistance: 1" rotation-reader></a-camera>
 </a-scene>
 
 <script>
