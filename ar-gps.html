@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ChronoView — Mode GPS</title>
+
+  <!-- A-Frame + AR.js (GPS + Marker support) -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; font-family: Georgia, serif; background: #000; }
+
+    /* ──── LOADING ──── */
+    #loading {
+      position: fixed; inset: 0;
+      background: #080604;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999;
+      transition: opacity .6s ease;
+    }
+    #loading.out { opacity: 0; pointer-events: none; }
+    .ll { font-size: 32px; color: #c8a84b; letter-spacing: .1em; margin-bottom: 8px; }
+    .ls { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #a89870; margin-bottom: 30px; }
+    .lb { width: 160px; height: 1px; background: rgba(200,168,75,.2); overflow: hidden; }
+    .lb::after {
+      content: ''; display: block; height: 1px; width: 50%;
+      background: #c8a84b;
+      animation: sweep 1.4s ease infinite;
+    }
+    @keyframes sweep { from { transform: translateX(-120%); } to { transform: translateX(280%); } }
+
+    /* ──── TOP BAR ──── */
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: linear-gradient(to bottom, rgba(0,0,0,.88), transparent);
+      padding: 16px 18px 50px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .back {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(200,168,75,.12);
+      border: 1px solid rgba(200,168,75,.35);
+      color: #e8c96e;
+      padding: 8px 14px;
+      font-size: 13px; letter-spacing: .08em;
+      text-decoration: none; border-radius: 2px;
+    }
+    .mbadge {
+      background: rgba(200,168,75,.1);
+      border: 1px solid rgba(200,168,75,.28);
+      color: #e8c96e;
+      padding: 6px 12px;
+      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+      border-radius: 2px;
+    }
+
+    /* ──── GPS STATUS PILL ──── */
+    #gps-pill {
+      position: fixed; top: 76px; left: 50%; transform: translateX(-50%);
+      z-index: 100;
+      background: rgba(0,0,0,.72);
+      border: 1px solid rgba(200,168,75,.28);
+      padding: 7px 18px; border-radius: 20px;
+      font-size: 12px; letter-spacing: .1em; color: #a89870;
+      white-space: nowrap;
+      transition: opacity .5s;
+    }
+    #gps-pill.fade { opacity: 0; }
+
+    /* ──── BOTTOM CARD ──── */
+    #infocard {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: linear-gradient(to top, rgba(0,0,0,.95) 55%, transparent);
+      padding: 70px 22px 38px;
+    }
+    .loc-tag { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: #c8a84b; margin-bottom: 4px; }
+    .loc-name { font-size: 22px; color: #f0e6c8; margin-bottom: 8px; }
+    .dist-row {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #a89870; margin-bottom: 16px;
+    }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: #c8a84b;
+      animation: pulseAnim 1.8s ease infinite;
+    }
+    @keyframes pulseAnim {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(.75); }
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: rgba(200,168,75,.09);
+      border: 1px solid rgba(200,168,75,.22);
+      color: #f0e6c8;
+      padding: 4px 12px; font-size: 12px; border-radius: 2px;
+    }
+
+    /* Photo nav buttons */
+    .photo-nav {
+      display: flex; gap: 10px; margin-top: 16px;
+    }
+    .nav-btn {
+      flex: 1; padding: 11px;
+      background: rgba(200,168,75,.1);
+      border: 1px solid rgba(200,168,75,.3);
+      color: #e8c96e; font-size: 13px;
+      cursor: pointer; border-radius: 2px;
+      transition: background .2s;
+    }
+    .nav-btn:active { background: rgba(200,168,75,.22); }
+    .nav-btn.primary {
+      background: rgba(200,168,75,.18);
+      border-color: rgba(200,168,75,.55);
+    }
+
+    /* A-Frame full screen */
+    a-scene { display: block !important; width: 100vw !important; height: 100vh !important; }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <div class="ll">CHRONO·VIEW</div>
+  <div class="ls">Activation GPS & Caméra</div>
+  <div class="lb"></div>
+</div>
+
+<!-- GPS status -->
+<div id="gps-pill">📍 Localisation en cours…</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <a href="index.html" class="back">← Retour</a>
+  <div class="mbadge">📍 Mode GPS</div>
+</div>
+
+<!-- Bottom info card -->
+<div id="infocard">
+  <div class="loc-tag">Lieu Historique</div>
+  <div class="loc-name" id="loc-name">Chargement…</div>
+  <div class="dist-row">
+    <div class="pulse"></div>
+    <span id="dist-text">Calcul de la distance…</span>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="photo-nav">
+    <button class="nav-btn" onclick="prevPhoto()">← Photo précédente</button>
+    <button class="nav-btn primary" onclick="toggleVideo()">🎞️ Vidéo</button>
+    <button class="nav-btn" onclick="nextPhoto()">Photo suivante →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     A-FRAME AR SCENE — GPS MODE
+     Modifiez latitude/longitude ci-dessous
+     ════════════════════════════════════════ -->
+<a-scene
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; debugUIEnabled: false; videoTexture: false;"
+  renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
+  embedded>
+
+  <a-assets>
+    <!-- Remplacez ces URLs par vos vraies photos historiques -->
+    <img id="p0" crossorigin="anonymous" src="https://picsum.photos/seed/pont1905/800/600">
+    <img id="p1" crossorigin="anonymous" src="https://picsum.photos/seed/pont1940/800/600">
+    <img id="p2" crossorigin="anonymous" src="https://picsum.photos/seed/pont1975/800/600">
+    <img id="p3" crossorigin="anonymous" src="https://picsum.photos/seed/pont2000/800/600">
+    <!-- Remplacez par votre vraie vidéo d'archive -->
+    <video id="vid" autoplay loop muted playsinline crossorigin="anonymous"
+           src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+  </a-assets>
+
+  <!--
+    ╔══════════════════════════════════╗
+    ║  MODIFIEZ CES COORDONNÉES GPS   ║
+    ║  → latitude  : votre lieu       ║
+    ║  → longitude : votre lieu       ║
+    ╚══════════════════════════════════╝
+  -->
+  <a-entity id="landmark-entity"
+    gps-entity-place="latitude: 47.2383; longitude: 6.0241;">
+
+    <!-- Marqueur au sol (sphère dorée flottante) -->
+    <a-sphere
+      position="0 1.5 0" radius="0.25"
+      material="color: #c8a84b; shader: flat; transparent: true; opacity: 0.9;"
+      animation="property: position; from: 0 1.2 0; to: 0 1.8 0;
+                 dur: 2200; easing: easeInOutSine; loop: true; dir: alternate;">
+    </a-sphere>
+
+    <!-- Photo principale (flottante, face à la caméra) -->
+    <a-plane
+      id="ar-photo"
+      src="#p0"
+      width="4" height="3"
+      position="0 5 0"
+      material="shader: flat; transparent: false;"
+      look-at="[gps-camera]">
+    </a-plane>
+
+    <!-- Année (au-dessus de la photo) -->
+    <a-text id="ar-year"
+      value="1905"
+      position="0 7 0"
+      align="center"
+      color="#c8a84b"
+      width="8"
+      look-at="[gps-camera]">
+    </a-text>
+
+    <!-- Légende (sous la photo) -->
+    <a-text id="ar-caption"
+      value="Vue historique"
+      position="0 3.2 0"
+      align="center"
+      color="#f0e6c8"
+      width="6"
+      look-at="[gps-camera]">
+    </a-text>
+
+    <!-- Vidéo (offset sur le côté) -->
+    <a-plane
+      id="ar-video"
+      material="shader: flat; src: #vid; transparent: false;"
+      width="4" height="3"
+      position="5.5 5 0"
+      visible="false"
+      look-at="[gps-camera]">
+    </a-plane>
+
+    <a-text id="ar-vid-label"
+      value="📽 Archives vidéo — 1968"
+      position="5.5 3.2 0"
+      align="center"
+      color="#c8a84b"
+      width="6"
+      visible="false"
+      look-at="[gps-camera]">
+    </a-text>
+
+  </a-entity>
+
+  <!-- Caméra GPS -->
+  <a-camera gps-camera rotation-reader></a-camera>
+</a-scene>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  ⚙️  CONFIGURATION — Modifiez ici vos données
+// ═══════════════════════════════════════════════════
+const CONFIG = {
+  landmark: {
+    name: "Pont Battant",
+    lat: 47.2383,
+    lng: 6.0241,
+  },
+  stats: ["🏗️ Construit en 1749", "📏 48 mètres", "🏛️ Monument historique", "🚗 25 000 véh/jour"],
+  photos: [
+    { id:"#p0", year:"1905", caption:"Vue d'époque du pont" },
+    { id:"#p1", year:"1940", caption:"Le pont durant la guerre" },
+    { id:"#p2", year:"1975", caption:"Rénovation des années 70" },
+    { id:"#p3", year:"2000", caption:"Entrée dans le millénaire" },
+  ]
+};
+// ═══════════════════════════════════════════════════
+
+let photoIdx = 0;
+let videoVisible = false;
+
+// Init UI
+document.getElementById('loc-name').textContent = CONFIG.landmark.name;
+const chipsEl = document.getElementById('chips');
+CONFIG.stats.forEach(s => {
+  const c = document.createElement('div');
+  c.className = 'chip'; c.textContent = s;
+  chipsEl.appendChild(c);
+});
+
+// Haversine distance (meters)
+function dist(lat1, lng1, lat2, lng2) {
+  const R = 6371000, r = Math.PI/180;
+  const dLat = (lat2-lat1)*r, dLng = (lng2-lng1)*r;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function fmtDist(m) {
+  return m < 1000 ? `${Math.round(m)} m du lieu` : `${(m/1000).toFixed(1)} km du lieu`;
+}
+
+// GPS watch
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    const d = dist(pos.coords.latitude, pos.coords.longitude, CONFIG.landmark.lat, CONFIG.landmark.lng);
+    document.getElementById('dist-text').textContent = fmtDist(d);
+    const pill = document.getElementById('gps-pill');
+    pill.textContent = `📍 GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
+    pill.classList.remove('fade');
+    setTimeout(() => pill.classList.add('fade'), 4000);
+  }, err => {
+    const msg = err.code === 1 ? '⚠️ GPS refusé dans Safari' : '⚠️ Erreur GPS';
+    document.getElementById('gps-pill').textContent = msg;
+    document.getElementById('dist-text').textContent = 'GPS indisponible';
+  }, { enableHighAccuracy: true, maximumAge: 5000 });
+} else {
+  document.getElementById('gps-pill').textContent = '❌ GPS non supporté';
+}
+
+function updateAR() {
+  const p = CONFIG.photos[photoIdx];
+  document.querySelector('#ar-photo').setAttribute('src', p.id);
+  document.querySelector('#ar-year').setAttribute('value', p.year);
+  document.querySelector('#ar-caption').setAttribute('value', p.caption);
+}
+
+function nextPhoto() {
+  if (videoVisible) toggleVideo();
+  photoIdx = (photoIdx + 1) % CONFIG.photos.length;
+  updateAR();
+}
+
+function prevPhoto() {
+  if (videoVisible) toggleVideo();
+  photoIdx = (photoIdx - 1 + CONFIG.photos.length) % CONFIG.photos.length;
+  updateAR();
+}
+
+function toggleVideo() {
+  videoVisible = !videoVisible;
+  document.querySelector('#ar-video').setAttribute('visible', videoVisible ? 'true' : 'false');
+  document.querySelector('#ar-vid-label').setAttribute('visible', videoVisible ? 'true' : 'false');
+  document.querySelector('#ar-photo').setAttribute('visible', videoVisible ? 'false' : 'true');
+  if (videoVisible) document.querySelector('#vid').play();
+}
+
+// Auto-cycle photos every 7s
+setInterval(() => { if (!videoVisible) nextPhoto(); }, 7000);
+
+// Remove loading on scene ready
+document.querySelector('a-scene').addEventListener('loaded', () => {
+  setTimeout(() => document.getElementById('loading').classList.add('out'), 1400);
+});
+</script>
+</body>
+</html>
