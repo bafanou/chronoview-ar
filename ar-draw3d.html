@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ChronoView — Dessin 3D AR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:   #c8a84b;
+      --gold-lt:#e8c96e;
+      --cream:  #f0e6c8;
+      --muted:  #a89870;
+      --black:  #080604;
+    }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Cormorant Garamond', serif; }
+
+    /* ── CAMERA ── */
+    #video {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    /* ── THREE.JS CANVAS ── */
+    #three-canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      touch-action: none;
+    }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px;
+    }
+    .btn-nav {
+      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cream); background: rgba(8,6,4,.8);
+      border: 1px solid rgba(200,168,75,.35); padding: 9px 16px;
+      border-radius: 2px; text-decoration: none; backdrop-filter: blur(8px);
+    }
+    .mode-label {
+      font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+      color: var(--gold); background: rgba(8,6,4,.8);
+      border: 1px solid rgba(200,168,75,.35); padding: 9px 16px;
+      border-radius: 2px; backdrop-filter: blur(8px);
+    }
+
+    /* ── INDICATEUR PROFONDEUR ── */
+    #depth-bar {
+      position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+      z-index: 10; display: none;
+      flex-direction: column; align-items: center; gap: 8px;
+    }
+    #depth-bar label {
+      font-size: 9px; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); writing-mode: vertical-lr; transform: rotate(180deg);
+    }
+    #depth-track {
+      width: 4px; height: 160px;
+      background: rgba(200,168,75,.15); border-radius: 2px; position: relative;
+    }
+    #depth-thumb {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--gold); border: 2px solid var(--cream);
+      transition: bottom .15s;
+    }
+    #depth-value {
+      font-size: 11px; color: var(--gold); letter-spacing: .1em;
+    }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+      background: rgba(8,6,4,.88); border-top: 1px solid rgba(200,168,75,.2);
+      backdrop-filter: blur(16px); padding: 12px 16px 28px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* Palette */
+    .colors { display: flex; gap: 9px; align-items: center; justify-content: center; }
+    .color-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid transparent; cursor: pointer;
+      transition: transform .15s, border-color .15s; flex-shrink: 0;
+    }
+    .color-dot.active { border-color: var(--cream); transform: scale(1.3); }
+
+    /* Taille */
+    .brush-sizes { display: flex; gap: 10px; align-items: center; justify-content: center; }
+    .brush-btn {
+      background: transparent; border: 1px solid rgba(200,168,75,.3);
+      border-radius: 50%; cursor: pointer; transition: border-color .15s, transform .15s;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .brush-btn.active { border-color: var(--gold); transform: scale(1.15); }
+    .brush-btn .dot { background: var(--cream); border-radius: 50%; }
+
+    /* Profondeur slider */
+    .depth-row {
+      display: flex; align-items: center; gap: 10px; justify-content: center;
+    }
+    .depth-row label { font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); min-width: 60px; }
+    #depthSlider {
+      flex: 1; max-width: 200px; height: 3px;
+      -webkit-appearance: none; appearance: none;
+      background: rgba(200,168,75,.25); border-radius: 2px; outline: none;
+    }
+    #depthSlider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--gold); border: 2px solid var(--cream); cursor: pointer;
+    }
+    #depthNum { font-size: 12px; color: var(--gold); min-width: 30px; text-align: right; }
+
+    /* Actions */
+    .actions { display: flex; gap: 8px; justify-content: center; }
+    .action-btn {
+      font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cream); background: rgba(200,168,75,.1);
+      border: 1px solid rgba(200,168,75,.3); padding: 9px 14px;
+      border-radius: 2px; cursor: pointer; flex: 1; text-align: center;
+      transition: background .2s;
+    }
+    .action-btn:active { background: rgba(200,168,75,.25); }
+    .action-btn.gold { background: rgba(200,168,75,.2); border-color: rgba(200,168,75,.6); color: var(--gold-lt); }
+
+    /* ── ÉCRAN DÉMARRAGE ── */
+    #start-msg {
+      position: fixed; inset: 0; z-index: 20;
+      background: rgba(8,6,4,.93);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 32px; gap: 18px;
+    }
+    #start-msg h2 { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--cream); }
+    #start-msg p { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 280px; }
+    .hint {
+      font-size: 12px; color: rgba(168,152,112,.6);
+      border: 1px solid rgba(200,168,75,.15); padding: 10px 16px; border-radius: 2px;
+      line-height: 1.6; max-width: 280px;
+    }
+    #start-btn {
+      font-family: 'Cormorant Garamond', serif; font-size: 13px;
+      letter-spacing: .2em; text-transform: uppercase;
+      color: var(--black); background: var(--gold);
+      border: none; padding: 14px 32px; border-radius: 2px; cursor: pointer;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 30; background: rgba(8,6,4,.9);
+      border: 1px solid rgba(200,168,75,.4); color: var(--gold);
+      font-size: 12px; letter-spacing: .1em; padding: 10px 20px;
+      border-radius: 2px; backdrop-filter: blur(8px);
+      opacity: 0; transition: opacity .3s; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Écran démarrage -->
+<div id="start-msg">
+  <h2>Dessin 3D AR</h2>
+  <p>Dessinez dans l'espace réel en 3 dimensions — ajustez la profondeur pour créer des effets de relief</p>
+  <div class="hint">
+    1 doigt — dessiner<br>
+    Curseur profondeur — avant / arrière<br>
+    Pincer (2 doigts) — zoom scène
+  </div>
+  <button id="start-btn" onclick="startCamera()">Activer la caméra</button>
+</div>
+
+<!-- Caméra -->
+<video id="video" autoplay playsinline muted></video>
+
+<!-- Canvas Three.js -->
+<canvas id="three-canvas"></canvas>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <a href="ar-draw.html" class="btn-nav">← 2D</a>
+  <div class="mode-label">Dessin 3D AR</div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+
+  <!-- Palette -->
+  <div class="colors" id="palette">
+    <div class="color-dot active" style="background:#ffffff" data-color="#ffffff"></div>
+    <div class="color-dot" style="background:#c8a84b" data-color="#c8a84b"></div>
+    <div class="color-dot" style="background:#e74c3c" data-color="#e74c3c"></div>
+    <div class="color-dot" style="background:#3498db" data-color="#3498db"></div>
+    <div class="color-dot" style="background:#2ecc71" data-color="#2ecc71"></div>
+    <div class="color-dot" style="background:#e91e8c" data-color="#e91e8c"></div>
+    <div class="color-dot" style="background:#ff6b35" data-color="#ff6b35"></div>
+  </div>
+
+  <!-- Taille pinceau -->
+  <div class="brush-sizes" id="brushSizes">
+    <button class="brush-btn active" style="width:32px;height:32px" data-size="1"><div class="dot" style="width:2px;height:2px"></div></button>
+    <button class="brush-btn" style="width:36px;height:36px" data-size="2"><div class="dot" style="width:5px;height:5px"></div></button>
+    <button class="brush-btn" style="width:40px;height:40px" data-size="4"><div class="dot" style="width:9px;height:9px"></div></button>
+    <button class="brush-btn" style="width:44px;height:44px" data-size="7"><div class="dot" style="width:15px;height:15px"></div></button>
+    <button class="brush-btn" style="width:48px;height:48px" data-size="12"><div class="dot" style="width:22px;height:22px"></div></button>
+  </div>
+
+  <!-- Profondeur -->
+  <div class="depth-row">
+    <label>Profondeur</label>
+    <input type="range" id="depthSlider" min="-8" max="8" step="0.5" value="0">
+    <span id="depthNum">0</span>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="action-btn" onclick="undoLast()">Annuler</button>
+    <button class="action-btn" onclick="clearAll()">Effacer</button>
+    <button class="action-btn gold" onclick="saveScene()">Enregistrer</button>
+  </div>
+
+</div>
+
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+  // ── STATE ──
+  let color     = '#ffffff';
+  let lineWidth = 1;
+  let depthZ    = 0;
+  let drawing   = false;
+  let strokes   = [];          // tous les objets Line3D
+  let currentPoints = [];      // points du trait en cours
+  let currentLine   = null;
+
+  // ── THREE.JS SETUP ──
+  const canvas   = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 1000);
+  camera.position.set(0, 0, 10);
+  camera.lookAt(0, 0, 0);
+
+  function resize() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ── BOUCLE DE RENDU ──
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // ── PROJECTION ÉCRAN → 3D ──
+  function screenTo3D(sx, sy, z) {
+    const x = (sx / window.innerWidth)  * 2 - 1;
+    const y = -(sy / window.innerHeight) * 2 + 1;
+    const vec = new THREE.Vector3(x, y, 0.5);
+    vec.unproject(camera);
+    const dir = vec.sub(camera.position).normalize();
+    const dist = (z - camera.position.z) / dir.z;
+    return camera.position.clone().add(dir.multiplyScalar(dist));
+  }
+
+  // ── CRÉER UN NOUVEAU TRAIT ──
+  function newStroke(x, y) {
+    currentPoints = [];
+    const pt = screenTo3D(x, y, depthZ);
+    currentPoints.push(pt.x, pt.y, pt.z);
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(currentPoints, 3));
+
+    const mat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(color),
+      linewidth: lineWidth,   // note: linewidth > 1 non supporté WebGL standard
+    });
+
+    // Pour épaisseur réelle : on crée plusieurs lignes décalées
+    currentLine = new THREE.Line(geo, mat);
+    currentLine.userData = { color, lineWidth, depthZ };
+    scene.add(currentLine);
+    strokes.push(currentLine);
+  }
+
+  // ── CONTINUER LE TRAIT ──
+  function extendStroke(x, y) {
+    if (!currentLine) return;
+    const pt = screenTo3D(x, y, depthZ);
+    currentPoints.push(pt.x, pt.y, pt.z);
+    currentLine.geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute([...currentPoints], 3)
+    );
+    currentLine.geometry.attributes.position.needsUpdate = true;
+    currentLine.geometry.computeBoundingSphere();
+  }
+
+  // ── EVENTS TOUCH ──
+  let pinchStart = 0;
+  let cameraZStart = 10;
+
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      drawing = true;
+      newStroke(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      drawing = false;
+      pinchStart = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      cameraZStart = camera.position.z;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && drawing) {
+      extendStroke(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = pinchStart / dist;
+      camera.position.z = Math.max(2, Math.min(25, cameraZStart * scale));
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (e.touches.length === 0) { drawing = false; currentLine = null; }
+  }, { passive: false });
+
+  // Events souris (desktop)
+  canvas.addEventListener('mousedown', e => { drawing = true; newStroke(e.clientX, e.clientY); });
+  canvas.addEventListener('mousemove', e => { if (drawing) extendStroke(e.clientX, e.clientY); });
+  canvas.addEventListener('mouseup',   () => { drawing = false; currentLine = null; });
+
+  // ── SLIDER PROFONDEUR ──
+  const slider = document.getElementById('depthSlider');
+  const depthNum = document.getElementById('depthNum');
+  slider.addEventListener('input', () => {
+    depthZ = parseFloat(slider.value);
+    depthNum.textContent = depthZ > 0 ? '+' + depthZ : depthZ;
+  });
+
+  // ── PALETTE ──
+  document.getElementById('palette').addEventListener('click', e => {
+    const dot = e.target.closest('.color-dot');
+    if (!dot) return;
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    color = dot.dataset.color;
+  });
+
+  // ── TAILLE PINCEAU ──
+  document.getElementById('brushSizes').addEventListener('click', e => {
+    const btn = e.target.closest('.brush-btn');
+    if (!btn) return;
+    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    lineWidth = parseInt(btn.dataset.size);
+  });
+
+  // ── ANNULER ──
+  function undoLast() {
+    if (!strokes.length) return;
+    const last = strokes.pop();
+    scene.remove(last);
+    last.geometry.dispose();
+    last.material.dispose();
+    showToast('Trait annulé');
+  }
+
+  // ── EFFACER TOUT ──
+  function clearAll() {
+    strokes.forEach(s => { scene.remove(s); s.geometry.dispose(); s.material.dispose(); });
+    strokes = [];
+    showToast('Scène effacée');
+  }
+
+  // ── ENREGISTRER ──
+  function saveScene() {
+    renderer.render(scene, camera);
+
+    // Composite vidéo + dessin 3D
+    const save = document.createElement('canvas');
+    save.width  = window.innerWidth  * window.devicePixelRatio;
+    save.height = window.innerHeight * window.devicePixelRatio;
+    const sCtx = save.getContext('2d');
+
+    const video = document.getElementById('video');
+    sCtx.drawImage(video, 0, 0, save.width, save.height);
+    sCtx.drawImage(canvas, 0, 0, save.width, save.height);
+
+    const link = document.createElement('a');
+    link.download = 'chronoview-3d-' + Date.now() + '.png';
+    link.href = save.toDataURL('image/png');
+    link.click();
+    showToast('Image enregistrée');
+  }
+
+  // ── CAMÉRA ──
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, audio: false
+      });
+      document.getElementById('video').srcObject = stream;
+      document.getElementById('start-msg').style.display = 'none';
+    } catch(e) {
+      alert('Caméra non accessible.');
+    }
+  }
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+</script>
+</body>
+</html>
