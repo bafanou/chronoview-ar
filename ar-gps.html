@@ -132,12 +132,12 @@
 </div>
 
 <!-- GPS status -->
-<div id="gps-pill">📍 Localisation en cours…</div>
+<div id="gps-pill">Localisation en cours…</div>
 
 <!-- Top bar -->
 <div id="topbar">
   <a href="index.html" class="back">← Retour</a>
-  <div class="mbadge">📍 Mode GPS</div>
+  <div class="mbadge">Mode GPS</div>
 </div>
 
 <!-- Bottom info card -->
@@ -151,7 +151,7 @@
   <div class="chips" id="chips"></div>
   <div class="photo-nav">
     <button class="nav-btn" onclick="prevPhoto()">← Photo précédente</button>
-    <button class="nav-btn primary" onclick="toggleVideo()">🎞️ Vidéo</button>
+    <button class="nav-btn primary" onclick="toggleVideo()">Vidéo</button>
     <button class="nav-btn" onclick="nextPhoto()">Photo suivante →</button>
   </div>
 </div>
@@ -236,7 +236,7 @@
     </a-plane>
 
     <a-text id="ar-vid-label"
-      value="📽 Archives vidéo — 1968"
+      value="Archives vidéo — 1968"
       position="5.5 3.2 0"
       align="center"
       color="#c8a84b"
@@ -261,7 +261,7 @@ const CONFIG = {
     lat: 47.2383,
     lng: 6.0241,
   },
-  stats: ["🏗️ Construit en 1749", "📏 48 mètres", "🏛️ Monument historique", "🚗 25 000 véh/jour"],
+  stats: ["Construit en 1749", "48 mètres", "Monument historique", "25 000 véh/jour"],
   photos: [
     { id:"#p0", year:"1905", caption:"Vue d'époque du pont" },
     { id:"#p1", year:"1940", caption:"Le pont durant la guerre" },
@@ -301,16 +301,16 @@ if (navigator.geolocation) {
     const d = dist(pos.coords.latitude, pos.coords.longitude, CONFIG.landmark.lat, CONFIG.landmark.lng);
     document.getElementById('dist-text').textContent = fmtDist(d);
     const pill = document.getElementById('gps-pill');
-    pill.textContent = `📍 GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
+    pill.textContent = `GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
     pill.classList.remove('fade');
     setTimeout(() => pill.classList.add('fade'), 4000);
   }, err => {
-    const msg = err.code === 1 ? '⚠️ GPS refusé dans Safari' : '⚠️ Erreur GPS';
+    const msg = err.code === 1 ? 'GPS refusé dans Safari' : 'Erreur GPS';
     document.getElementById('gps-pill').textContent = msg;
     document.getElementById('dist-text').textContent = 'GPS indisponible';
   }, { enableHighAccuracy: true, maximumAge: 5000 });
 } else {
-  document.getElementById('gps-pill').textContent = '❌ GPS non supporté';
+  document.getElementById('gps-pill').textContent = 'GPS non supporté';
 }
 
 function updateAR() {

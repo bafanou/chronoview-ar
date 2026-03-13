@@ -145,7 +145,7 @@
 <!-- Top bar -->
 <div id="topbar">
   <a href="index.html" class="back">← Retour</a>
-  <div class="mbadge">🎯 Mode Marqueur</div>
+  <div class="mbadge">Mode Marqueur</div>
 </div>
 
 <!-- Scan hint -->
@@ -167,7 +167,7 @@
   <div class="dots" id="dots"></div>
   <div class="btn-row">
     <button class="btn" onclick="prevPhoto()">← Préc.</button>
-    <button class="btn prime" id="vid-btn" onclick="toggleVideo()">🎞️ Vidéo</button>
+    <button class="btn prime" id="vid-btn" onclick="toggleVideo()">Vidéo</button>
     <button class="btn" onclick="nextPhoto()">Suiv. →</button>
   </div>
 </div>
@@ -317,12 +317,12 @@ function toggleVideo() {
     document.querySelector('#ar-cap').setAttribute('value', VIDEO_CAPTION);
     document.getElementById('yr').textContent  = VIDEO_YEAR;
     document.getElementById('cap').textContent = VIDEO_CAPTION;
-    btn.textContent = '📸 Photos';
+    btn.textContent = 'Photos';
     document.querySelector('#vid').play();
   } else {
     img.setAttribute('visible','true');
     vid.setAttribute('visible','false');
-    btn.textContent = '🎞️ Vidéo';
+    btn.textContent = 'Vidéo';
     refreshUI(); refreshAR();
   }
 }
