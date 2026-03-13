@@ -260,6 +260,7 @@ const CONFIG = {
     name: "Test Maison",
     lat: 47.495705,
     lng: 6.804361,
+    radius: 100,   // mètres — AR visible dans ce rayon
   },
   stats: ["Construit en 1749", "48 mètres", "Monument historique", "25 000 véh/jour"],
   photos: [
@@ -299,7 +300,20 @@ function fmtDist(m) {
 if (navigator.geolocation) {
   navigator.geolocation.watchPosition(pos => {
     const d = dist(pos.coords.latitude, pos.coords.longitude, CONFIG.landmark.lat, CONFIG.landmark.lng);
-    document.getElementById('dist-text').textContent = fmtDist(d);
+    const inZone = d <= CONFIG.landmark.radius;
+
+    // Affichage distance
+    document.getElementById('dist-text').textContent = inZone
+      ? `Dans la zone AR — ${Math.round(d)} m`
+      : fmtDist(d) + ` (zone AR : ${CONFIG.landmark.radius} m)`;
+
+    // Couleur zone
+    document.getElementById('dist-text').style.color = inZone ? '#c8a84b' : '';
+
+    // Afficher/cacher le contenu AR
+    const entity = document.querySelector('#landmark-entity');
+    if (entity) entity.setAttribute('visible', inZone ? 'true' : 'false');
+
     const pill = document.getElementById('gps-pill');
     pill.textContent = `GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
     pill.classList.remove('fade');
