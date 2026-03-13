@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ChronoView AR — Le Passé Révélé</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #080604;
+      --dark:     #100d08;
+      --gold:     #c8a84b;
+      --gold-lt:  #e8c96e;
+      --cream:    #f0e6c8;
+      --muted:    #a89870;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--black);
+      color: var(--cream);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      overflow-x: hidden;
+    }
+
+    /* Film grain */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .page {
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding-top: 64px;
+      text-align: center;
+      animation: fadeDown .9s ease both;
+    }
+
+    .ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .ornament-line { flex: 1; max-width: 50px; height: 1px; background: var(--gold); opacity: .5; }
+    .ornament-diamond {
+      width: 8px; height: 8px;
+      border: 1px solid var(--gold);
+      transform: rotate(45deg);
+      opacity: .8;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 10vw, 48px);
+      letter-spacing: 0.1em;
+      color: var(--cream);
+      line-height: 1;
+    }
+    h1 em { color: var(--gold); font-style: normal; }
+
+    .tagline {
+      margin-top: 14px;
+      font-size: 12px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid rgba(200,168,75,.3);
+      padding: 5px 14px;
+      border-radius: 2px;
+    }
+
+    /* ── FILM STRIP ── */
+    .filmstrip {
+      display: flex;
+      gap: 3px;
+      margin: 36px -24px;
+      overflow: hidden;
+      opacity: .6;
+      animation: fadeIn 1.6s ease .4s both;
+    }
+    .frame {
+      flex-shrink: 0;
+      width: 90px; height: 64px;
+      background: #1a1208;
+      border: 1px solid rgba(200,168,75,.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .frame::before, .frame::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0;
+      width: 8px;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0, transparent 5px,
+        var(--black) 5px, var(--black) 9px
+      );
+    }
+    .frame::before { left: 0; }
+    .frame::after { right: 0; }
+    .frame-inner {
+      position: absolute; inset: 0 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; opacity: .7;
+      background: linear-gradient(135deg, #2a1f0a 0%, #0f0a04 100%);
+    }
+
+    /* ── MODE CARDS ── */
+    .modes { display: flex; flex-direction: column; gap: 14px; animation: fadeUp .9s ease .25s both; }
+
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 22px 20px;
+      background: linear-gradient(135deg, rgba(26,18,8,.75), rgba(16,13,8,.9));
+      border: 1px solid rgba(200,168,75,.18);
+      border-radius: 3px;
+      text-decoration: none;
+      color: var(--cream);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s, transform .2s;
+    }
+    .card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(200,168,75,.06), transparent);
+      opacity: 0; transition: opacity .25s;
+    }
+    .card:hover { border-color: rgba(200,168,75,.45); transform: translateY(-2px); }
+    .card:hover::before { opacity: 1; }
+    .card:active { transform: translateY(0); }
+
+    .card-icon {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      border: 1px solid rgba(200,168,75,.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+      background: rgba(200,168,75,.07);
+    }
+    .card-tag {
+      font-size: 10px; letter-spacing: .25em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 3px;
+    }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 3px; }
+    .card-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .card-arrow { margin-left: auto; color: var(--gold); font-size: 20px; flex-shrink: 0; opacity: .6; }
+
+    .or-divider {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--muted); margin: 2px 0;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: rgba(200,168,75,.12);
+    }
+
+    /* ── INSTRUCTIONS ── */
+    .instructions {
+      margin-top: 28px;
+      padding: 22px;
+      border: 1px solid rgba(200,168,75,.1);
+      border-radius: 3px;
+      background: rgba(20,15,6,.5);
+      animation: fadeUp .9s ease .5s both;
+    }
+    .instructions h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .step { display: flex; gap: 12px; margin-bottom: 11px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .step-n {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border: 1px solid rgba(200,168,75,.4);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: var(--gold); margin-top: 1px;
+    }
+    .step strong { color: var(--cream); }
+
+    /* ── MARKER LINK ── */
+    .marker-link {
+      display: block;
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(200,168,75,.07);
+      border: 1px dashed rgba(200,168,75,.3);
+      border-radius: 3px;
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: .1em;
+      color: var(--gold);
+      text-decoration: none;
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 48px;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: .15em;
+      color: rgba(168,152,112,.35);
+      animation: fadeIn 2s ease 1s both;
+    }
+
+    /* Animations */
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-18px); } to { opacity:1; transform:none; } }
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(18px);  } to { opacity:1; transform:none; } }
+    @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="ornament">
+      <div class="ornament-line"></div>
+      <div class="ornament-diamond"></div>
+      <div class="ornament-line"></div>
+    </div>
+    <h1>CHRONO<em>·</em>VIEW</h1>
+    <p class="tagline">Révélez le passé · Explorez le présent</p>
+    <span class="badge">Réalité Augmentée · iPhone 12 · Safari</span>
+  </header>
+
+  <!-- Film strip decoration -->
+  <div class="filmstrip">
+    <div class="frame"><div class="frame-inner">🏛️</div></div>
+    <div class="frame"><div class="frame-inner">🌉</div></div>
+    <div class="frame"><div class="frame-inner">📸</div></div>
+    <div class="frame"><div class="frame-inner">🎞️</div></div>
+    <div class="frame"><div class="frame-inner">🏗️</div></div>
+    <div class="frame"><div class="frame-inner">📽️</div></div>
+  </div>
+
+  <!-- Mode selection -->
+  <div class="modes">
+    <a href="ar-gps.html" class="card">
+      <div class="card-icon">📍</div>
+      <div>
+        <div class="card-tag">Mode 1 — Automatique</div>
+        <div class="card-title">GPS · Détection de lieu</div>
+        <div class="card-desc">Approchez-vous du monument — archives et infos s'affichent automatiquement en AR</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <div class="or-divider">ou</div>
+
+    <a href="ar-marker.html" class="card">
+      <div class="card-icon">🎯</div>
+      <div>
+        <div class="card-tag">Mode 2 — Manuel</div>
+        <div class="card-title">Scan de marqueur Hiro</div>
+        <div class="card-desc">Pointez la caméra vers le marqueur imprimé pour révéler photos et vidéos d'archives</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instructions">
+    <h3>📋 Comment démarrer</h3>
+    <div class="step">
+      <div class="step-n">1</div>
+      <div>Autorisez l'accès à la <strong>caméra</strong> et à la <strong>localisation</strong> lorsque Safari vous le demande</div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div><strong>Mode GPS</strong> : rendez-vous près du lieu configuré dans <code>ar-gps.html</code> et pointez la caméra</div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div><strong>Mode Marqueur</strong> : imprimez ou affichez le marqueur Hiro ci-dessous sur un écran</div>
+    </div>
+    <div class="step">
+      <div class="step-n">4</div>
+      <div>Naviguez entre <strong>photos historiques</strong> et <strong>vidéos d'archives</strong> via les boutons à l'écran</div>
+    </div>
+
+    <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+       target="_blank" class="marker-link">
+      🖨️ Afficher / Imprimer le marqueur Hiro →
+    </a>
+  </div>
+
+  <footer>CHRONO·VIEW AR &nbsp;·&nbsp; AR.js + A-Frame &nbsp;·&nbsp; Deployez sur GitHub Pages ou Netlify</footer>
+</div>
+</body>
+</html>

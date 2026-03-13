@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ChronoView — Mode Marqueur</title>
+
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; font-family: Georgia, serif; background: #000; }
+
+    /* ──── LOADING ──── */
+    #loading {
+      position: fixed; inset: 0; background: #080604;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999; transition: opacity .6s;
+    }
+    #loading.out { opacity: 0; pointer-events: none; }
+    .ll { font-size: 30px; color: #c8a84b; letter-spacing: .1em; margin-bottom: 8px; }
+    .ls { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: #a89870; margin-bottom: 28px; }
+    .lb { width: 150px; height: 1px; background: rgba(200,168,75,.2); overflow: hidden; }
+    .lb::after {
+      content: ''; display: block; height: 1px; width: 50%;
+      background: #c8a84b; animation: sweep 1.4s ease infinite;
+    }
+    @keyframes sweep { from { transform: translateX(-120%); } to { transform: translateX(280%); } }
+
+    /* ──── TOP BAR ──── */
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(to bottom, rgba(0,0,0,.88), transparent);
+      padding: 16px 18px 50px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .back {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(200,168,75,.12); border: 1px solid rgba(200,168,75,.35);
+      color: #e8c96e; padding: 8px 14px; font-size: 13px;
+      text-decoration: none; border-radius: 2px; letter-spacing: .08em;
+    }
+    .mbadge {
+      background: rgba(200,168,75,.1); border: 1px solid rgba(200,168,75,.28);
+      color: #e8c96e; padding: 6px 12px; font-size: 11px;
+      letter-spacing: .2em; text-transform: uppercase; border-radius: 2px;
+    }
+
+    /* ──── SCAN HINT ──── */
+    #scan-hint {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 150; text-align: center; pointer-events: none;
+      transition: opacity .4s;
+    }
+    #scan-hint.hidden { opacity: 0; }
+
+    .scan-frame {
+      width: 170px; height: 170px; margin: 0 auto 22px; position: relative;
+    }
+    /* Corner brackets */
+    .scan-frame::before, .scan-frame::after,
+    .scan-c2::before, .scan-c2::after {
+      content: ''; position: absolute; width: 28px; height: 28px;
+      border-color: #c8a84b; border-style: solid;
+    }
+    .scan-frame::before { top: 0; left: 0; border-width: 2px 0 0 2px; }
+    .scan-frame::after  { top: 0; right: 0; border-width: 2px 2px 0 0; }
+    .scan-c2 { position: absolute; inset: 0; }
+    .scan-c2::before { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+    .scan-c2::after  { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+    /* Scanning line */
+    .scan-line {
+      position: absolute; top: 0; left: 6px; right: 6px; height: 2px;
+      background: linear-gradient(to right, transparent, #c8a84b 50%, transparent);
+      animation: scanLine 2.2s ease infinite;
+    }
+    @keyframes scanLine { 0% { top: 4px; opacity: 1; } 100% { top: 164px; opacity: 0; } }
+
+    .scan-label {
+      font-size: 15px; letter-spacing: .18em; text-transform: uppercase;
+      color: #f0e6c8; text-shadow: 0 0 20px rgba(0,0,0,.8);
+    }
+    .scan-sub {
+      font-size: 12px; color: #a89870; margin-top: 7px; letter-spacing: .12em;
+    }
+
+    /* ──── BOTTOM CONTROLS ──── */
+    #controls {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(to top, rgba(0,0,0,.94) 60%, transparent);
+      padding: 70px 22px 38px;
+      transition: opacity .4s;
+    }
+    #controls.hidden { opacity: 0; pointer-events: none; }
+
+    /* Year / Caption display */
+    .year-block { text-align: center; margin-bottom: 18px; }
+    .year-big {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 52px; color: #c8a84b; letter-spacing: .06em; line-height: 1;
+      text-shadow: 0 0 40px rgba(200,168,75,.3);
+    }
+    .caption-sm { font-size: 14px; color: #a89870; margin-top: 5px; letter-spacing: .06em; }
+
+    /* Photo dot indicators */
+    .dots {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(200,168,75,.25);
+      transition: background .3s, transform .3s;
+    }
+    .dot.on { background: #c8a84b; transform: scale(1.3); }
+
+    /* Control buttons */
+    .btn-row { display: flex; gap: 10px; }
+    .btn {
+      flex: 1; padding: 14px 10px;
+      border: 1px solid rgba(200,168,75,.32);
+      background: rgba(200,168,75,.09);
+      color: #e8c96e; font-size: 13px; letter-spacing: .08em;
+      cursor: pointer; border-radius: 2px;
+      transition: background .18s;
+    }
+    .btn:active { background: rgba(200,168,75,.22); }
+    .btn.prime { background: rgba(200,168,75,.18); border-color: rgba(200,168,75,.6); }
+
+    a-scene { display: block !important; width: 100vw !important; height: 100vh !important; }
+  </style>
+
+  <!-- Playfair for the year display -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="ll">CHRONO·VIEW</div>
+  <div class="ls">Activation de la caméra</div>
+  <div class="lb"></div>
+</div>
+
+<!-- Top bar -->
+<div id="topbar">
+  <a href="index.html" class="back">← Retour</a>
+  <div class="mbadge">🎯 Mode Marqueur</div>
+</div>
+
+<!-- Scan hint -->
+<div id="scan-hint">
+  <div class="scan-frame">
+    <div class="scan-c2"></div>
+    <div class="scan-line"></div>
+  </div>
+  <div class="scan-label">Pointez le marqueur Hiro</div>
+  <div class="scan-sub">Maintenez la caméra stable</div>
+</div>
+
+<!-- Controls -->
+<div id="controls" class="hidden">
+  <div class="year-block">
+    <div class="year-big" id="yr">1905</div>
+    <div class="caption-sm" id="cap">Vue d'époque du pont</div>
+  </div>
+  <div class="dots" id="dots"></div>
+  <div class="btn-row">
+    <button class="btn" onclick="prevPhoto()">← Préc.</button>
+    <button class="btn prime" id="vid-btn" onclick="toggleVideo()">🎞️ Vidéo</button>
+    <button class="btn" onclick="nextPhoto()">Suiv. →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     A-FRAME AR SCENE — MARQUEUR HIRO
+     ══════════════════════════════════════════ -->
+<a-scene
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+  renderer="antialias: true; alpha: true;"
+  embedded>
+
+  <a-assets>
+    <!-- 📸 Remplacez par vos vraies photos historiques -->
+    <img id="p0" crossorigin="anonymous" src="https://picsum.photos/seed/pont1905/800/600">
+    <img id="p1" crossorigin="anonymous" src="https://picsum.photos/seed/pont1940/800/600">
+    <img id="p2" crossorigin="anonymous" src="https://picsum.photos/seed/pont1975/800/600">
+    <img id="p3" crossorigin="anonymous" src="https://picsum.photos/seed/pont2000/800/600">
+    <!-- 🎬 Remplacez par votre vraie vidéo d'archive -->
+    <video id="vid" loop muted playsinline crossorigin="anonymous"
+           src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+  </a-assets>
+
+  <!-- ◉ MARQUEUR HIRO : affiché dès que la caméra le voit -->
+  <a-marker preset="hiro" id="marker">
+
+    <!-- Cadre doré décoratif (fond) -->
+    <a-plane
+      width="1.75" height="1.35"
+      position="0 0 -0.01"
+      rotation="-90 0 0"
+      material="color: #c8a84b; shader: flat; transparent: true; opacity: 0.15;">
+    </a-plane>
+
+    <!-- Photo historique -->
+    <a-plane
+      id="ar-img"
+      src="#p0"
+      width="1.6" height="1.2"
+      position="0 0 0"
+      rotation="-90 0 0"
+      material="shader: flat; transparent: false;">
+    </a-plane>
+
+    <!-- Vidéo (cachée au départ) -->
+    <a-plane
+      id="ar-vid"
+      material="shader: flat; src: #vid; transparent: false;"
+      width="1.6" height="1.2"
+      position="0 0 0"
+      rotation="-90 0 0"
+      visible="false">
+    </a-plane>
+
+    <!-- Année au-dessus -->
+    <a-text
+      id="ar-year"
+      value="1905"
+      position="0 0 0.72"
+      rotation="-90 0 0"
+      align="center"
+      color="#c8a84b"
+      width="3.5">
+    </a-text>
+
+    <!-- Légende en dessous -->
+    <a-text
+      id="ar-cap"
+      value="Vue historique du pont"
+      position="0 0 -0.72"
+      rotation="-90 0 0"
+      align="center"
+      color="#f0e6c8"
+      width="3">
+    </a-text>
+
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  ⚙️  CONFIGURATION — Modifiez ici vos données
+// ═══════════════════════════════════════════════════
+const PHOTOS = [
+  { id:'#p0', year:'1905', cap:"Vue d'époque du pont" },
+  { id:'#p1', year:'1940', cap:"Le pont durant la guerre" },
+  { id:'#p2', year:'1975', cap:"Rénovation des années 70" },
+  { id:'#p3', year:'2000', cap:"Entrée dans le millénaire" },
+];
+const VIDEO_YEAR    = '1968';
+const VIDEO_CAPTION = 'Archives cinématographiques';
+// ═══════════════════════════════════════════════════
+
+let idx = 0;
+let videoMode = false;
+
+// Build dots
+const dotsEl = document.getElementById('dots');
+PHOTOS.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' on':'');
+  d.id = 'dot' + i;
+  dotsEl.appendChild(d);
+});
+
+function refreshUI() {
+  const p = PHOTOS[idx];
+  document.getElementById('yr').textContent  = p.year;
+  document.getElementById('cap').textContent = p.cap;
+  PHOTOS.forEach((_, i) => {
+    document.getElementById('dot'+i).className = 'dot' + (i===idx?' on':'');
+  });
+}
+
+function refreshAR() {
+  const p = PHOTOS[idx];
+  document.querySelector('#ar-img').setAttribute('src', p.id);
+  document.querySelector('#ar-year').setAttribute('value', p.year);
+  document.querySelector('#ar-cap').setAttribute('value', p.cap);
+}
+
+function nextPhoto() {
+  if (videoMode) { toggleVideo(); return; }
+  idx = (idx + 1) % PHOTOS.length;
+  refreshUI(); refreshAR();
+}
+
+function prevPhoto() {
+  if (videoMode) { toggleVideo(); return; }
+  idx = (idx - 1 + PHOTOS.length) % PHOTOS.length;
+  refreshUI(); refreshAR();
+}
+
+function toggleVideo() {
+  videoMode = !videoMode;
+  const img = document.querySelector('#ar-img');
+  const vid = document.querySelector('#ar-vid');
+  const btn = document.getElementById('vid-btn');
+
+  if (videoMode) {
+    img.setAttribute('visible','false');
+    vid.setAttribute('visible','true');
+    document.querySelector('#ar-year').setAttribute('value', VIDEO_YEAR);
+    document.querySelector('#ar-cap').setAttribute('value', VIDEO_CAPTION);
+    document.getElementById('yr').textContent  = VIDEO_YEAR;
+    document.getElementById('cap').textContent = VIDEO_CAPTION;
+    btn.textContent = '📸 Photos';
+    document.querySelector('#vid').play();
+  } else {
+    img.setAttribute('visible','true');
+    vid.setAttribute('visible','false');
+    btn.textContent = '🎞️ Vidéo';
+    refreshUI(); refreshAR();
+  }
+}
+
+// Marker detection events
+const marker = document.querySelector('#marker');
+marker.addEventListener('markerFound', () => {
+  document.getElementById('scan-hint').classList.add('hidden');
+  document.getElementById('controls').classList.remove('hidden');
+});
+marker.addEventListener('markerLost', () => {
+  document.getElementById('scan-hint').classList.remove('hidden');
+  document.getElementById('controls').classList.add('hidden');
+});
+
+// Remove loading screen
+document.querySelector('a-scene').addEventListener('loaded', () => {
+  setTimeout(() => document.getElementById('loading').classList.add('out'), 1500);
+});
+</script>
+</body>
+</html>
