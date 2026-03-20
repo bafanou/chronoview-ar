@@ -173,9 +173,33 @@
     .nav-btn.primary { background: rgba(200,168,75,.1); color: #c8a84b; }
 
     a-scene { display: block !important; width: 100vw !important; height: 100vh !important; }
+
+    /* ──── ÉCRAN DE BIENVENUE PSM ──── */
+    #welcome {
+      position: fixed; inset: 0; background: #080604;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 99999; transition: opacity .8s ease;
+    }
+    #welcome.out { opacity: 0; pointer-events: none; }
+    #welcome img {
+      width: 180px; margin-bottom: 28px;
+      animation: welcomeFade 1s ease forwards;
+    }
+    @keyframes welcomeFade { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+    .wt { font-size: 22px; color: #c8a84b; letter-spacing: .15em; text-align: center; margin-bottom: 10px; }
+    .ws { font-size: 13px; color: #a89870; letter-spacing: .25em; text-transform: uppercase; text-align: center; }
+    .wline { width: 60px; height: 1px; background: rgba(200,168,75,.4); margin: 18px auto 0; }
   </style>
 </head>
 <body>
+
+<!-- Écran de bienvenue PSM -->
+<div id="welcome">
+  <img src="image_campus/logo_psm.jpg" alt="Logo PSM">
+  <div class="wt">Bienvenue au Master PSM</div>
+  <div class="ws">Produits &amp; Services Multimédia</div>
+  <div class="wline"></div>
+</div>
 
 <!-- Loading -->
 <div id="loading">
@@ -249,6 +273,13 @@
 </a-scene>
 
 <script>
+// ──── Écran de bienvenue : disparaît après 3 secondes ────
+setTimeout(() => {
+  const w = document.getElementById('welcome');
+  w.classList.add('out');
+  setTimeout(() => w.remove(), 900);
+}, 3000);
+
 // ═══════════════════════════════════════════════════
 //    CONFIGURATION — Modifiez ici vos données
 // ═══════════════════════════════════════════════════
