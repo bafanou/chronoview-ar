@@ -173,14 +173,15 @@
     /* A-Frame full screen */
     a-scene { display: block !important; width: 100vw !important; height: 100vh !important; }
 
-    /* ──── ÉCRAN DE BIENVENUE PSM ──── */
-    #welcome {
-      position: fixed; inset: 0; background: #080604;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 99999; transition: opacity .8s ease;
+    /* ──── LOGO ZONE GPS ──── */
+    #zone-logo {
+      position: fixed; inset: 0; background: rgba(8,6,4,.95);
+      flex-direction: column; align-items: center; justify-content: center;
+      z-index: 99999; transition: opacity .8s ease; opacity: 0;
     }
-    #welcome.out { opacity: 0; pointer-events: none; }
-    #welcome img { width: 180px; margin-bottom: 28px; animation: welcomeFade 1s ease forwards; }
+    #zone-logo.show { display: flex !important; opacity: 1; }
+    #zone-logo.out  { opacity: 0; pointer-events: none; }
+    #zone-logo img { width: 180px; margin-bottom: 28px; animation: welcomeFade 1s ease forwards; }
     @keyframes welcomeFade { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
     .wt { font-size: 22px; color: #c8a84b; letter-spacing: .15em; text-align: center; margin-bottom: 10px; }
     .ws { font-size: 13px; color: #a89870; letter-spacing: .25em; text-transform: uppercase; text-align: center; }
@@ -189,11 +190,11 @@
 </head>
 <body>
 
-<!-- Écran de bienvenue PSM -->
-<div id="welcome">
-  <img src="image_campus/logo_psm.jpg" alt="Logo PSM">
-  <div class="wt">Bienvenue au Master PSM</div>
-  <div class="ws">Produits &amp; Services Multimédia</div>
+<!-- Logo lieu — apparaît quand on entre dans la zone GPS -->
+<div id="zone-logo" style="display:none;">
+  <img id="zone-logo-img" src="" alt="Logo">
+  <div class="wt" id="zone-logo-name"></div>
+  <div class="ws">Vous êtes arrivé au lieu</div>
   <div class="wline"></div>
 </div>
 
@@ -297,22 +298,31 @@
 </a-scene>
 
 <script>
-// ──── Écran de bienvenue : disparaît après 3 secondes ────
-setTimeout(() => {
-  const w = document.getElementById('welcome');
-  w.classList.add('out');
-  setTimeout(() => w.remove(), 900);
-}, 3000);
+// ──── Logo zone GPS ────
+let zoneLogoShown = false;
+function showZoneLogo() {
+  if (zoneLogoShown) return;
+  zoneLogoShown = true;
+  const el = document.getElementById('zone-logo');
+  document.getElementById('zone-logo-img').src = CONFIG.landmark.logo || '';
+  document.getElementById('zone-logo-name').textContent = CONFIG.landmark.name;
+  el.classList.add('show');
+  setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => { el.style.display = 'none'; }, 900);
+  }, 3000);
+}
 
 // ═══════════════════════════════════════════════════
 //    CONFIGURATION — Modifiez ici vos données
 // ═══════════════════════════════════════════════════
 const CONFIG = {
   landmark: {
-    name: "Test Maison",
+    name: "Master PSM · UFR STGI",
     lat: 47.495705,
     lng: 6.804361,
     radius: 100,   // mètres — AR visible dans ce rayon
+    logo: "image_campus/logo_psm.jpg",   // logo affiché à l'arrivée sur le lieu
   },
   stats: ["Construit en 1749", "48 mètres", "Monument historique", "25 000 véh/jour"],
   photos: [
@@ -379,8 +389,12 @@ if (navigator.geolocation) {
 
     // Afficher/cacher l'overlay photo
     const overlay = document.getElementById('photo-overlay');
-    if (inZone) overlay.classList.add('visible');
-    else overlay.classList.remove('visible');
+    if (inZone) {
+      showZoneLogo();
+      overlay.classList.add('visible');
+    } else {
+      overlay.classList.remove('visible');
+    }
 
     const pill = document.getElementById('gps-pill');
     pill.textContent = `GPS actif · ±${Math.round(pos.coords.accuracy)} m`;
