@@ -284,13 +284,13 @@ setTimeout(() => {
 //    CONFIGURATION — Modifiez ici vos données
 // ═══════════════════════════════════════════════════
 const PHOTOS = [
-  { id:'#p0', year:'2026', cap:"Soutenance publique des projets de fin d'études — Master 2 Produits & Services Multimédia, UFR STGI · Université Marie et Louis Pasteur" },
-  { id:'#p1', year:'2026', cap:"Présentés au showroom de SEM NUMERICA, 10 projets innovants autour des services multimédia ont été mis à l'honneur" },
-  { id:'#p2', year:'2026', cap:"IA, XR, IoT, SaaS… Des solutions concrètes : Guardify, RoadEye, OptiStock, Air Quality, Campus 3D, RAPIDO et bien d'autres" },
-  { id:'#p3', year:'2026', cap:"Des mois de travail qui marquent la fin du parcours universitaire — et le début d'une aventure professionnelle pour nos étudiants" },
-  { id:'#p4', year:'2025', cap:"Remise des diplômes — Master PSM · Jeudi 4 septembre, l'UFR STGI célèbre la promotion 2025" },
-  { id:'#p5', year:'2025', cap:"Fierté et convivialité pour féliciter nos étudiants qui clôturent deux années d'efforts et de projets enrichissants" },
-  { id:'#p6', year:'2025', cap:"Bravo à la promotion 2025 ! Nous vous souhaitons un bel avenir professionnel, riche en opportunités et en réussites" },
+  { src:'image_campus/fin_etude2026.jpeg',    year:'2026', cap:"Soutenance publique des projets de fin d'études — Master 2 Produits & Services Multimédia, UFR STGI · Université Marie et Louis Pasteur" },
+  { src:'image_campus/fin_etude2026_1.jpeg',  year:'2026', cap:"Présentés au showroom de SEM NUMERICA, 10 projets innovants autour des services multimédia ont été mis à l'honneur" },
+  { src:'image_campus/fin_etude_2.jpeg',      year:'2026', cap:"IA, XR, IoT, SaaS… Des solutions concrètes : Guardify, RoadEye, OptiStock, Air Quality, Campus 3D, RAPIDO et bien d'autres" },
+  { src:'image_campus/fin_etude_3.jpeg',      year:'2026', cap:"Des mois de travail qui marquent la fin du parcours universitaire — et le début d'une aventure professionnelle pour nos étudiants" },
+  { src:'image_campus/remuse_diplome1.jpeg',  year:'2025', cap:"Remise des diplômes — Master PSM · Jeudi 4 septembre, l'UFR STGI célèbre la promotion 2025" },
+  { src:'image_campus/remuse_diplome2.jpeg',  year:'2025', cap:"Fierté et convivialité pour féliciter nos étudiants qui clôturent deux années d'efforts et de projets enrichissants" },
+  { src:'image_campus/reunion.jpeg',          year:'2025', cap:"Bravo à la promotion 2025 ! Nous vous souhaitons un bel avenir professionnel, riche en opportunités et en réussites" },
 ];
 const VIDEO_YEAR    = '1968';
 const VIDEO_CAPTION = 'Archives cinématographiques';
@@ -310,7 +310,7 @@ PHOTOS.forEach((_, i) => {
 
 function refreshUI() {
   const p = PHOTOS[idx];
-  document.getElementById('ar-img-overlay').src = document.querySelector(p.id).src;
+  document.getElementById('ar-img-overlay').src = p.src;
   document.getElementById('overlay-year').textContent = p.year;
   document.getElementById('overlay-caption').textContent = p.cap;
   PHOTOS.forEach((_, i) => {
